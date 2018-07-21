@@ -1,10 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using NUnit.Framework;
-
 namespace MoreLinq.Test
 {
+    using NUnit.Framework;
+
     /// <summary>
     /// Verify the behavior of the Lead operator.
     /// </summary>
@@ -22,38 +19,27 @@ namespace MoreLinq.Test
         }
 
         /// <summary>
-        /// Verify that Lead throws an exception if invoked on a <c>null</c> sequence.
-        /// </summary>
-        [Test]
-        [ExpectedException(typeof(ArgumentNullException))]
-        public void TestLeadNullSequenceException()
-        {
-            const IEnumerable<int> sequence = null;
-            sequence.Lead(5, (val, leadVal) => val);
-        }
-
-        /// <summary>
         /// Verify that attempting to lead by a negative offset will result in an exception.
         /// </summary>
         [Test]
-        [ExpectedException(typeof(ArgumentOutOfRangeException))]
         public void TestLeadNegativeOffset()
         {
-            Enumerable.Range(1, 100).Lead(-5, (val, leadVal) => val + leadVal);
+            AssertThrowsArgument.OutOfRangeException("offset", () =>
+                Enumerable.Range(1, 100).Lead(-5, (val, leadVal) => val + leadVal));
         }
 
         /// <summary>
         /// Verify that attempting to lead by a zero offset will result in an exception.
         /// </summary>
         [Test]
-        [ExpectedException(typeof(ArgumentOutOfRangeException))]
         public void TestLeadZeroOffset()
         {
-            Enumerable.Range(1, 100).Lead(0, (val, leadVal) => val + leadVal);
+            AssertThrowsArgument.OutOfRangeException("offset", () =>
+                Enumerable.Range(1, 100).Lead(0, (val, leadVal) => val + leadVal));
         }
 
         /// <summary>
-        /// Verify that lead can accept and propagate a default value passed to it.  
+        /// Verify that lead can accept and propagate a default value passed to it.
         /// </summary>
         [Test]
         public void TestLeadExplicitDefaultValue()
@@ -65,7 +51,7 @@ namespace MoreLinq.Test
             var result = sequence.Lead(leadBy, leadDefault, (val, leadVal) => leadVal);
 
             Assert.AreEqual(count, result.Count());
-            Assert.IsTrue(result.Skip(count - leadBy).SequenceEqual(Enumerable.Repeat(leadDefault, leadBy)));
+            Assert.That(result.Skip(count - leadBy), Is.EqualTo(Enumerable.Repeat(leadDefault, leadBy)));
         }
 
         /// <summary>
@@ -80,7 +66,7 @@ namespace MoreLinq.Test
             var result = sequence.Lead(leadBy, (val, leadVal) => leadVal);
 
             Assert.AreEqual(count, result.Count());
-            Assert.IsTrue(result.Skip(count - leadBy).SequenceEqual(Enumerable.Repeat(default(int), leadBy)));
+            Assert.That(result.Skip(count - leadBy), Is.EqualTo(Enumerable.Repeat(default(int), leadBy)));
         }
 
         /// <summary>
@@ -96,7 +82,7 @@ namespace MoreLinq.Test
             var result = sequence.Lead(count + 1, leadDefault, (val, leadVal) => new { A = val, B = leadVal });
 
             Assert.AreEqual(count, result.Count());
-            Assert.IsTrue(result.SequenceEqual(sequence.Select(x => new { A = x, B = leadDefault })));
+            Assert.That(result, Is.EqualTo(sequence.Select(x => new { A = x, B = leadDefault })));
         }
 
         /// <summary>

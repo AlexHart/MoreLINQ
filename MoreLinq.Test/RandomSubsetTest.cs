@@ -1,10 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using NUnit.Framework;
-
 namespace MoreLinq.Test
 {
+    using System;
+    using System.Collections.Generic;
+    using NUnit.Framework;
+
     /// <summary>
     /// Tests that verify the behavior of the RandomSubset() operator
     /// </summary>
@@ -22,45 +21,23 @@ namespace MoreLinq.Test
         }
 
         /// <summary>
-        /// Verify that invoking RandomSubsets on a <c>null</c> sequence results in an exception.
-        /// </summary>
-        [Test]
-        [ExpectedException(typeof(ArgumentNullException))]
-        public void TestRandomSubsetNullSequence()
-        {
-            const IEnumerable<int> nullSequence = null;
-            nullSequence.RandomSubset(10);
-        }
-
-        /// <summary>
-        /// Verify that invoking RandomSubsets on a <c>null</c> sequence results in an exception.
-        /// </summary>
-        [Test]
-        [ExpectedException(typeof(ArgumentNullException))]
-        public void TestRandomSubsetNullSequence2()
-        {
-            const IEnumerable<int> nullSequence = null;
-            nullSequence.RandomSubset(10, new Random());
-        }
-
-        /// <summary>
         /// Verify that involving RandomSubsets with a subset size less than 0 results in an exception.
         /// </summary>
         [Test]
-        [ExpectedException(typeof(ArgumentOutOfRangeException))]
         public void TestRandomSubsetNegativeSubsetSize()
         {
-            Enumerable.Range(1, 10).RandomSubset(-5);
+            AssertThrowsArgument.OutOfRangeException("subsetSize", () =>
+                Enumerable.Range(1, 10).RandomSubset(-5));
         }
 
         /// <summary>
         /// Verify that involving RandomSubsets with a subset size less than 0 results in an exception.
         /// </summary>
         [Test]
-        [ExpectedException(typeof(ArgumentOutOfRangeException))]
         public void TestRandomSubsetNegativeSubsetSize2()
         {
-            Enumerable.Range(1, 10).RandomSubset(-1, new Random());
+            AssertThrowsArgument.OutOfRangeException("subsetSize", () =>
+                Enumerable.Range(1, 10).RandomSubset(-1, new Random()));
         }
 
         /// <summary>
@@ -113,14 +90,16 @@ namespace MoreLinq.Test
         /// results in an exception. Only thrown when the resulting random sequence is enumerated.
         /// </summary>
         [Test]
-        [ExpectedException(typeof(ArgumentOutOfRangeException))]
         public void TestRandomSubsetLongerThanSequence()
         {
             const int count = 100;
             const int subsetSize = count + 5;
             var sequence = Enumerable.Range(1, count);
 
-            sequence.RandomSubset(subsetSize).Count();
+            AssertThrowsArgument.OutOfRangeException("subsetSize", () =>
+            {
+                sequence.RandomSubset(subsetSize).Consume();
+            });
         }
 
         /// <summary>
@@ -128,14 +107,16 @@ namespace MoreLinq.Test
         /// results in an exception. Only thrown when the resulting random sequence is enumerated.
         /// </summary>
         [Test]
-        [ExpectedException(typeof(ArgumentOutOfRangeException))]
         public void TestRandomSubsetLongerThanSequence2()
         {
             const int count = 100;
             const int subsetSize = count + 5;
             var sequence = Enumerable.Range(1, count);
 
-            sequence.RandomSubset(subsetSize, new Random(1234)).Count();
+            AssertThrowsArgument.OutOfRangeException("subsetSize", () =>
+            {
+                sequence.RandomSubset(subsetSize, new Random(1234)).Consume();
+            });
         }
 
         /// <summary>
@@ -145,7 +126,7 @@ namespace MoreLinq.Test
         /// It's actually a complicated matter to ensure that a random process does not exhibit
         /// any kind of bias. In this test, we want to make sure that the probability of any
         /// particular subset being returned is roughly the same as any other. Here's how.
-        /// 
+        ///
         /// This test selects a random subset of length N from an ascending sequence 1..N.
         /// It then adds up the values of the random result into an accumulator array. After many
         /// iterations, we would hope that each index of the accumulator array approach the same
@@ -157,7 +138,7 @@ namespace MoreLinq.Test
         ///
         /// For math geeks who read this:
         ///   A decreasing RSD demonstrates that the random subsets form a cumulative distribution
-        ///   approaching unity (1.0). Which, given that the original sequence was monotonic, implies 
+        ///   approaching unity (1.0). Which, given that the original sequence was monotonic, implies
         ///   there cannot be a selection bias in the returned subsets - quod erat demonstrandum (QED).
         /// </remarks>
         [Test]
@@ -218,21 +199,38 @@ namespace MoreLinq.Test
             var resultB = sequence.RandomSubset(subsetSize);
 
             // force complete enumeration of random subsets
-            resultA.Count();
-            resultB.Count();
+            resultA.Consume();
+            resultB.Consume();
 
             // verify the original sequence is untouched
-            Assert.IsTrue(sequence.SequenceEqual(sequenceClone));
+            Assert.That(sequence, Is.EqualTo(sequenceClone));
         }
 
-        private static double RelativeStandardDeviation(IEnumerable<double> values)
+        /// <summary>
+        /// Verify that RandomSubset produces subset where all elements belongs to original sequence.
+        /// </summary>
+        [Test]
+        public void TestRandomSubsetReturnsOriginalSequenceElements()
+        {
+            const int count = 100;
+            var sequence = Enumerable.Range(1, count);
+            var result = sequence.RandomSubset(count, new Random(12345));
+
+            // we do not test overload without seed because it can return original sequence
+            Assert.That(sequence, Is.Not.EqualTo(result));
+
+            // ensure random subset returns exactly the same elements of original sequence
+            Assert.That(sequence, Is.EqualTo(result.OrderBy(x => x)));
+        }
+
+        static double RelativeStandardDeviation(IEnumerable<double> values)
         {
             var average = values.Average();
             var standardDeviation = StandardDeviationInternal(values, average);
             return (standardDeviation * 100.0) / average;
         }
 
-        private static double StandardDeviationInternal(IEnumerable<double> values, double average)
+        static double StandardDeviationInternal(IEnumerable<double> values, double average)
         {
             return Math.Sqrt(values.Select(value => Math.Pow(value - average, 2.0)).Average());
         }

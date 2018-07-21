@@ -1,18 +1,34 @@
 @echo off
-setlocal
-cd "%~dp0"
-set MSBUILDEXE=%SystemRoot%\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe
-if not exist "%MSBUILDEXE%" (
-    echo The .NET Framework 4.0 does not appear to be installed on this 
-    echo machine, which is required to build the solution.
-    exit /b 1
-)
-if "%1"=="docs" call :docs %2 %3 %4 %5 %6 %7 %8 %9 & goto :EOF
+pushd "%~dp0"
+call :main %*
+popd
+goto :EOF
 
-:base
-for %%i in (debug release) do "%MSBUILDEXE%" "MoreLinq.sln" /v:m /p:Configuration=%%i %*
+:main
+setlocal
+for %%i in (dotnet.exe) do set dotnet=%%~dpnx$PATH:i
+if "%dotnet%"=="" goto :nodotnet
+if "%1"=="docs" shift & goto :docs
+:build
+dotnet --info ^
+  && dotnet restore ^
+  && call :codegen MoreLinq\Extensions.g.cs -x "[/\\]ToDataTable\.cs$" -u System.Linq -u System.Collections MoreLinq ^
+  && call :codegen MoreLinq\Extensions.ToDataTable.g.cs -i "[/\\]ToDataTable\.cs$" -u System.Data -u System.Linq.Expressions MoreLinq ^
+  && for %%i in (debug release) do call msbuild.cmd "MoreLinq.sln" /v:m /p:Configuration=%%i %* || exit /b 1
 goto :EOF
 
 :docs
-call :base && "%MSBUILDEXE%" MoreLinq.shfbproj %*
+call :build && call msbuild.cmd MoreLinq.shfbproj %1 %2 %3 %4 %5 %6 %7 %8 %9
+goto :EOF
+
+:nodotnet
+echo>&2 dotnet executable not found in PATH
+echo>&2 For more on dotnet, see https://www.microsoft.com/net/core
+exit /b 2
+
+:codegen
+echo | set /p=Generating extensions wrappers (%1)...
+dotnet run -p bld/ExtensionsGenerator/MoreLinq.ExtensionsGenerator.csproj -c Release -- %2 %3 %4 %5 %6 %7 %8 %9 > "%temp%\%~nx1" ^
+  && move "%temp%\%~nx1" "%~dp1" > nul ^
+  && echo Done.
 goto :EOF

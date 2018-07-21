@@ -36,17 +36,17 @@ namespace MoreLinq
         /// This operator uses deferred execution and streams its results.
         /// </remarks>
         /// <example>
-        /// <code>
+        /// <code><![CDATA[
         /// int[] numbers = { 1, 2, 3, 4, 5 };
-        /// IEnumerable&lt;int&gt; result = numbers.TakeEvery(2);
-        /// </code>
+        /// var result = numbers.TakeEvery(2);
+        /// ]]></code>
         /// The <c>result</c> variable, when iterated over, will yield 1, 3 and 5, in turn.
         /// </example>
 
         public static IEnumerable<TSource> TakeEvery<TSource>(this IEnumerable<TSource> source, int step)
         {
-            if (source == null) throw new ArgumentNullException("source");
-            if (step <= 0) throw new ArgumentOutOfRangeException("step");
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (step <= 0) throw new ArgumentOutOfRangeException(nameof(step));
             return source.Where((e, i) => i % step == 0);
         }
     }
